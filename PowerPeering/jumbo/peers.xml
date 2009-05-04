@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<peers>
+	<peer email="default.cn.com" /> <!-- password = "pwd" -->
+</peers>
