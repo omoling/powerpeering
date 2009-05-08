@@ -1,4 +1,4 @@
-package it.unibz.inf.cn.io;
+package old.it.unibz.inf.cn.io;
 
 import java.io.BufferedReader;
 import java.io.DataInputStream;
@@ -10,17 +10,18 @@ import java.io.InputStreamReader;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
-import it.unibz.inf.cn.Jumbo;
-import it.unibz.inf.cn.dst.EmailAdress;
-import it.unibz.inf.cn.dst.Mail;
-import it.unibz.inf.cn.thirtParty.Base64Coder;
+import old.it.unibz.inf.cn.Jumbo;
+import old.it.unibz.inf.cn.dst.EmailAdress;
+import old.it.unibz.inf.cn.dst.Message;
+import old.it.unibz.inf.cn.thirtParty.Base64Coder;
+
 
 public class Smtp {
 	
 	public static final int DEFAULT_PORT = 25;
 	private static final int BUFFER_SIZE = 1024;
 	
-	public static void sendMail(String host, Mail mail) throws Exception {
+	public static void sendMail(String host, Message mail) throws Exception {
 		
 		Socket socket = null;
 		DataOutputStream out = null;
@@ -31,13 +32,13 @@ public class Smtp {
 			out = new DataOutputStream(socket.getOutputStream());
 			in = new DataInputStream(socket.getInputStream());
 		} catch(UnknownHostException e) {
-			Jumbo.ERR_LOG.println("Error while sending mail: " + e);
+			Jumbo.errLog("Error while sending mail: " + e);
 			throw new Exception(e);
 		} catch(IOException e) {
-			Jumbo.ERR_LOG.println("Error while sending mail: " + e);
+			Jumbo.errLog("Error while sending mail: " + e);
 			throw new Exception(e);
 		} catch(NullPointerException e) {
-			Jumbo.ERR_LOG.println("Error while sending mail: " + e);
+			Jumbo.errLog("Error while sending mail: " + e);
 			throw new Exception(e);
 		}
 		
@@ -49,7 +50,6 @@ public class Smtp {
 				out.writeBytes("RCPT TO: <" + mail.getTo() + ">\r\n");
 				out.writeBytes("DATA\r\n");
 				out.writeBytes("Subject: " + mail.getSubject() + "\r\n");
-				// TODO may be not needed out.writeBytes(mail.getContent() + "\r\n");
 				if(mail.hasAttachment()) {
 					out.writeBytes("Attachment: " + mail.getAttachment().getName() + "\r\n");
 					FileInputStream fin = new FileInputStream(mail.getAttachment());
@@ -60,10 +60,11 @@ public class Smtp {
 					}
 					out.writeBytes("\r\n");
 				}
+				out.writeBytes("Content:\r\n" + mail.getContent() + "\r\n");
 				out.writeBytes("\r\n.\r\n");
 				out.writeBytes("QUIT\r\n");
 			} catch(IOException e) {
-				Jumbo.ERR_LOG.println("Error while sending mail: " + e);
+				Jumbo.errLog("Error while sending mail: " + e);
 				throw new Exception(e);
 			}
 			// retrieve response
@@ -76,7 +77,7 @@ public class Smtp {
 					System.out.println("Server response: " + responseLine);
 				}
 			} catch(IOException e ) {
-				Jumbo.ERR_LOG.println("Error while sending mail: " + e);
+				Jumbo.errLog("Error while sending mail: " + e);
 				throw new Exception(e);
 			}			
 		}
@@ -89,7 +90,7 @@ public class Smtp {
 			if(socket != null)
 				socket.close();
 		} catch (IOException e) {
-			Jumbo.ERR_LOG.println("Erro while closing socket/streams " + e);
+			Jumbo.errLog("Erro while closing socket/streams " + e);
 			throw new Exception(e);
 		}
 	}
@@ -100,7 +101,7 @@ public class Smtp {
 		EmailAdress from = EmailAdress.parseEmailAdress("test@helo.com");
 		EmailAdress to = EmailAdress.parseEmailAdress("default@cn.com");
 		
-		Mail m = new Mail(from, to, "subject", "content", new File(Jumbo.getDataPath() + "peers.xml"));
+		Message m = new Message(from, to, "subject", "content\r\ntesttext", new File(Jumbo.getDataPath() + "peers.xml"));
 		
 		Smtp.sendMail("localhost", m);
 	}
