@@ -1,4 +1,4 @@
-package it.unibz.inf.cn.io;
+package old.it.unibz.inf.cn.io;
 
 import java.io.BufferedReader;
 import java.io.DataInputStream;
@@ -11,32 +11,33 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 
-import it.unibz.inf.cn.Jumbo;
-import it.unibz.inf.cn.dst.Mail;
+import old.it.unibz.inf.cn.Jumbo;
+import old.it.unibz.inf.cn.dst.Message;
+
 
 public class Pop3 {
 	
 	public static final int DEFAULT_PORT = 110;
 	
-	public static List<Mail> popMails(String host, String user, String pwd) throws Exception {
+	public static List<Message> popMails(String host, String user, String pwd) throws Exception {
 		
 		Socket socket = null;
 		DataOutputStream out = null;
 		DataInputStream in =null;
-		List<Mail> mails = null;
+		List<Message> mails = null;
 		
 		try {
 			socket = new Socket(host, DEFAULT_PORT);
 			out = new DataOutputStream(socket.getOutputStream());
 			in = new DataInputStream(socket.getInputStream());
 		} catch(UnknownHostException e) {
-			Jumbo.ERR_LOG.println("Error while sending mail: " + e);
+			Jumbo.errLog("Error while sending mail: " + e);
 			throw new Exception(e);
 		} catch(IOException e) {
-			Jumbo.ERR_LOG.println("Error while sending mail: " + e);
+			Jumbo.errLog("Error while sending mail: " + e);
 			throw new Exception(e);
 		} catch(NullPointerException e) {
-			Jumbo.ERR_LOG.println("Error while sending mail: " + e);
+			Jumbo.errLog("Error while sending mail: " + e);
 			throw new Exception(e);
 		}
 		
@@ -53,7 +54,7 @@ public class Pop3 {
 			try {
 				out.writeBytes("QUIT\r\n");
 			} catch(IOException e) {
-				Jumbo.ERR_LOG.println("Error while quiting POP service: " + e);
+				Jumbo.errLog("Error while quiting POP service: " + e);
 				throw new Exception(e);
 			}
 		}
@@ -66,7 +67,7 @@ public class Pop3 {
 			if(socket != null)
 				socket.close();
 		} catch (IOException e) {
-			Jumbo.ERR_LOG.println("Erro while closing socket/streams " + e);
+			Jumbo.errLog("Erro while closing socket/streams " + e);
 			throw new Exception(e);
 		}
 
@@ -84,7 +85,7 @@ public class Pop3 {
 		int lineCnt = 0;
 		while((responseLine = bf.readLine()) != null && lineCnt < 2) {
 			if(!responseLine.startsWith("+OK"))	{
-				Jumbo.ERR_LOG.println("Error while POP authentication");
+				Jumbo.errLog("Error while POP authentication");
 				return false;
 			}
 			lineCnt++;
@@ -103,7 +104,7 @@ public class Pop3 {
 		// check status line
 		
 		if(!bf.readLine().startsWith("+OK"))
-			Jumbo.ERR_LOG.println("List command not successfull");
+			Jumbo.errLog("List command not successfull");
 		
 		while((responseLine = bf.readLine()) != null && !responseLine.equals(".")) {
 			ids.add(responseLine.substring(0, responseLine.indexOf(" ")));
@@ -112,8 +113,8 @@ public class Pop3 {
 		return ids;
 	}
 	
-	private static List<Mail> fetchMails(DataOutputStream out, DataInputStream in, List<String> ids) throws IOException {
-		List<Mail> mails = new ArrayList<Mail>();
+	private static List<Message> fetchMails(DataOutputStream out, DataInputStream in, List<String> ids) throws IOException {
+		List<Message> mails = new ArrayList<Message>();
 		
 		BufferedReader bf = new BufferedReader(new InputStreamReader(in));
 		String responseLine;
@@ -123,15 +124,16 @@ public class Pop3 {
 			textBuffer = new StringBuffer();
 			responseLine = bf.readLine();
 			if(!responseLine.startsWith("+OK")) {
-				Jumbo.ERR_LOG.println("Error fetching mail!");
+				Jumbo.errLog("Error fetching mail!");
 			}
 			while((responseLine = bf.readLine()) != null && !responseLine.startsWith(".")) {
 				textBuffer.append(responseLine + "\n");
 			}
+			textBuffer.append(".");
 			try {
-				mails.add(Mail.parseMail(textBuffer.toString()));
+				mails.add(Message.parseMail(textBuffer.toString()));
 			} catch (ParseException e) {
-				Jumbo.ERR_LOG.println("Error while parsing mail!");
+				Jumbo.errLog("Error while parsing mail!");
 			}
 		}
 		
@@ -145,7 +147,7 @@ public class Pop3 {
 			out.writeBytes("DELE " + id + "\r\n");
 			responseLine = bf.readLine();
 			if(!responseLine.startsWith("+OK")) {
-				Jumbo.ERR_LOG.println("Error deleting mail!");
+				Jumbo.errLog("Error deleting mail!");
 			}
 		}
 	}
@@ -153,9 +155,9 @@ public class Pop3 {
 	private Pop3() {}
 	
 	public static void main(String[] args) throws Exception {
-		List<Mail> mails = Pop3.popMails("localhost", "default", "pwd");
+		List<Message> mails = Pop3.popMails("localhost", "default", "pwd");
 		
-		for(Mail m : mails) {
+		for(Message m : mails) {
 			System.out.println(m);
 		}
 	}
