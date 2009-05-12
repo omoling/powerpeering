@@ -1,16 +1,11 @@
 package it.unibz.inf.cn.messages;
 
-public class FPING extends PING {
+public class FQUERY extends QUERY {
 	
 	private String requestor;
-	
-	public FPING(String from, String to) {
-		super(from, to);
-	}
 
-	@Override
-	public String getId() {
-		return PPMessage.FPING_ID;
+	public FQUERY(String from, String to) {
+		super(from, to);
 	}
 	
 	public void setRequestor(String requestor) {
@@ -20,8 +15,14 @@ public class FPING extends PING {
 	public String getRequestor() {
 		return requestor;
 	}
+
+	@Override
+	public String getId() {
+		return PPMessage.FQUERY_ID;
+	}
 	
 	public String toString() {
 		return super.toString() + " REQUESTOR: " + getRequestor();
 	}
+
 }
