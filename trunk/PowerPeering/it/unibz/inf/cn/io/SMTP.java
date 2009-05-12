@@ -25,6 +25,12 @@ public class SMTP {
 	}
 	
 	public static void send(String serverHost, String from, String to,
+			String subject, File attachment)
+			throws AddressException, MessagingException {
+		send(serverHost, from, to, subject, null, attachment);
+	}
+	
+	public static void send(String serverHost, String from, String to,
 			String subject, String bodyText, File attachment)
 			throws AddressException, MessagingException {
 
@@ -45,15 +51,15 @@ public class SMTP {
 		Multipart multipart = new MimeMultipart();
 		MimeBodyPart messageBodyPart;
 		// create the text part
-		messageBodyPart = new MimeBodyPart();
 		if(bodyText != null) {
+			messageBodyPart = new MimeBodyPart();
 			messageBodyPart.setText(bodyText);
 			multipart.addBodyPart(messageBodyPart);
 		}
 
 		// create the attachment part
-		messageBodyPart = new MimeBodyPart();
 		if(attachment != null) {
+			messageBodyPart = new MimeBodyPart();
 			DataSource source = new FileDataSource(attachment);
 			messageBodyPart.setDataHandler(new DataHandler(source));
 			messageBodyPart.setFileName(attachment.getName());
@@ -64,7 +70,7 @@ public class SMTP {
 		if(bodyText != null || attachment != null)
 			msg.setContent(multipart);
 		else
-			msg.setText("");
+			msg.setText(""); // if both are empty
 
 		Transport.send(msg);
 	}

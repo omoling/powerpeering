@@ -20,4 +20,8 @@ public class PING extends PPMessage {
 	public String getId() {
 		return PPMessage.PING_ID;
 	}
+	
+	public String toString() {
+		return super.toString() + " TTL: " + getTTL();
+	}
 }
