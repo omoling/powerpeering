@@ -52,21 +52,21 @@ public abstract class PowerPeer implements MessageHandler {
 			throw new RuntimeException("Unrecognized message " + message.getClass());
 	}
 	
-	public abstract void handleMessage(PING message);
+	protected abstract void handleMessage(PING message);
 	
-	public abstract void handleMessage(FPING message);
+	protected abstract void handleMessage(FPING message);
 	
-	public abstract void handleMessage(PONG message);
+	protected abstract void handleMessage(PONG message);
 	
-	public abstract void handleMessage(QUERY message);
+	protected abstract void handleMessage(QUERY message);
 	
-	public abstract void handleMessage(FQUERY message);
+	protected abstract void handleMessage(FQUERY message);
 	
-	public abstract void handleMessage(QUERYHIT message);
+	protected abstract void handleMessage(QUERYHIT message);
 	
-	public abstract void handleMessage(GET message);
+	protected abstract void handleMessage(GET message);
 	
-	public abstract void handleMessage(POST message);
+	protected abstract void handleMessage(POST message);
 	
 	protected void startListener(final int sec) {
 		final PowerPeer peer = this;
@@ -90,7 +90,7 @@ public abstract class PowerPeer implements MessageHandler {
 		isRunning = false;
 	}
 	
-	protected void sendPING(String to) throws AddressException, MessagingException {
+	public void sendPING(String to) throws AddressException, MessagingException {
 		PPMessages.sendPING(serverHost, email, to, ttl);
 	}
 	
@@ -102,7 +102,7 @@ public abstract class PowerPeer implements MessageHandler {
 		PPMessages.sendPONG(serverHost, email, to);
 	}
 	
-	protected void sendQUERY(String to, String expression) throws AddressException, MessagingException {
+	public void sendQUERY(String to, String expression) throws AddressException, MessagingException {
 		PPMessages.sendQUERY(serverHost, email, to, expression, ttl);
 	}
 	
@@ -114,7 +114,7 @@ public abstract class PowerPeer implements MessageHandler {
 		PPMessages.sendQUERYHIT(serverHost, email, to, expression, resources);
 	}
 	
-	protected void sendGET(String to, String resource) throws AddressException, MessagingException {
+	public void sendGET(String to, String resource) throws AddressException, MessagingException {
 		PPMessages.sendGET(serverHost, email, to, resource);
 	}
 	
@@ -130,5 +130,9 @@ public abstract class PowerPeer implements MessageHandler {
 		}
 		handleMessage(message);
 		return true;
+	}
+	
+	public String getUser() {
+		return user;
 	}
 }

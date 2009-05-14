@@ -6,7 +6,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
 
-import it.unibz.inf.cn.PeerTest;
+import it.unibz.inf.cn.PeerImpl;
 import it.unibz.inf.cn.messages.*;
 
 import javax.mail.Message;

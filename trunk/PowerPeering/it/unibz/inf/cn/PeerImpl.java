@@ -1,14 +1,18 @@
 package it.unibz.inf.cn;
 
+import it.unibz.inf.cn.commands.*;
 import it.unibz.inf.cn.messages.*;
+import it.unibz.inf.cn.util.QueryHit;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Random;
+import java.util.Scanner;
 
 import javax.mail.MessagingException;
 import javax.mail.internet.AddressException;
@@ -19,24 +23,34 @@ import org.dom4j.io.OutputFormat;
 import org.dom4j.io.SAXReader;
 import org.dom4j.io.XMLWriter;
 
-public class PeerTest extends PowerPeer implements UserInterface {
+public class PeerImpl extends PowerPeer implements UserInterface {
 
 	private List<String> peers;
 	private int maxPeers;
 	private List<String> resources;
 	private static String DATA_PATH = "jumbo/";
-	//private static String RESOURCE_PATH = "jumbo/resources";
+	private int checkTime;
+	private static String RESOURCE_PATH = "jumbo/resources/";
+	
+	private Hashtable<String, Command> commands;
+	// queryhits are handled through a list
+	private List<QueryHit> queryHits;
+	private String queryExpression;
+	private boolean isStopped;
 
-	public PeerTest(String serverHost, String email, String user, String pwd,
-			int ttl) {
+	public PeerImpl(String serverHost, String email, String user, String pwd,
+			int ttl, int checkTime, int maxPeers) {
 		super(serverHost, email, user, pwd, ttl);
 		peers = new ArrayList<String>();
 		peers.add("default@cn.com");
-		maxPeers = 10;
+		this.maxPeers = maxPeers;
+		this.checkTime = checkTime;
 		loadResources();
+		initCommands();
+		isStopped = false;
 	}
 
-	public void handleMessage(PING message) {
+	protected void handleMessage(PING message) {
 		try {
 			sendPONG(message.getFrom());
 			if (message.getTTL() < 1)
@@ -51,7 +65,7 @@ public class PeerTest extends PowerPeer implements UserInterface {
 		}
 	}
 
-	public void handleMessage(FPING message) {
+	protected void handleMessage(FPING message) {
 		try {
 			sendPONG(message.getRequestor());
 			if (message.getTTL() < 1)
@@ -67,7 +81,7 @@ public class PeerTest extends PowerPeer implements UserInterface {
 		}
 	}
 
-	public void handleMessage(PONG message) {
+	protected void handleMessage(PONG message) {
 		if (peers.contains(message.getFrom()))
 			return;
 		if (peers.size() < maxPeers)
@@ -82,7 +96,7 @@ public class PeerTest extends PowerPeer implements UserInterface {
 		}
 	}
 
-	public void handleMessage(QUERY message) {
+	protected void handleMessage(QUERY message) {
 		try {
 			List<String> resources = searchResources(message.getExpression());
 			if (resources.size() > 0)
@@ -99,8 +113,22 @@ public class PeerTest extends PowerPeer implements UserInterface {
 			error("QUERY message could not be handled!");
 		}
 	}
+	
+	public void sendQUERY(String to, String expression) throws AddressException, MessagingException {
+		super.sendQUERY(to, expression);
+		queryExpression = expression;
+		queryHits = new ArrayList<QueryHit>();
+	}
+	
+	public List<QueryHit> getQueryHits() {
+		return Collections.unmodifiableList(queryHits);
+	}
+	
+	public String getRecentQueryExpression() {
+		return queryExpression;
+	}
 
-	public void handleMessage(FQUERY message) {
+	protected void handleMessage(FQUERY message) {
 		try {
 			List<String> resources = searchResources(message.getExpression());
 			if (resources.size() > 0)
@@ -119,26 +147,40 @@ public class PeerTest extends PowerPeer implements UserInterface {
 		}
 	}
 
-	public void handleMessage(QUERYHIT message) {
-		// TODO handleMessage
-		display("Queryhits for \"" + message.getExpression() + "\":");
-		for(String resource : message.getResources())
-			display(resource);
+	protected void handleMessage(QUERYHIT message) {
+		for(QueryHit hit : queryHits) {
+			if(hit.getPeer().equals(message.getFrom()))
+				return;
+		}
 		
+		if(message.getExpression().equals(queryExpression)) {
+			for(String resource : message.getResources()) {
+				queryHits.add(new QueryHit(message.getFrom(), resource));
+			}
+		}
 	}
 
-	public void handleMessage(GET message) {
-		display("Request: " + message.getResource() + " via GET");
+	protected void handleMessage(GET message) {
+		
+		File request = new File(RESOURCE_PATH + message.getResource());
+		if(request.exists()) {
+			try {
+				sendPOST(message.getFrom(), request);
+			} catch (Throwable t) {
+				log(t.getMessage());
+				error("Cant't handle GET request\nSee log for details!");
+			}
+		}
 	}
 
-	public void handleMessage(POST message) {
+	protected void handleMessage(POST message) {
 		addResource(message.getAttachment().getName());
 		display("Recieved Resource: " + message.getAttachment().getName());
 	}
 
 	@Override
 	public void error(String s) {
-		System.err.println("ERROR: " + s + "\n See log for details !");
+		System.err.println("ERROR: " + s);
 	}
 
 	@Override
@@ -149,6 +191,41 @@ public class PeerTest extends PowerPeer implements UserInterface {
 	@Override
 	public void display(String s) {
 		System.out.println(s);
+	}
+	
+	public String mkInputRequest(String msg) {
+		System.out.print(msg);
+		return new Scanner(System.in).nextLine();
+	}
+	
+	public void start() {
+		startListener(checkTime);
+		display("Welcome to PowerPeering...");
+		
+		String input;
+		Scanner scanner = new Scanner(System.in);
+		
+		do {
+			System.out.print(getUser() + "$ ");
+			input = scanner.nextLine().toLowerCase();
+			
+			if(commands.containsKey(input)) {
+				commands.get(input).execute(this);
+			} else {
+				error("Wrong input command");
+			}
+			
+		} while(!isStopped);
+		
+	}
+	
+	public void stop() {
+		isStopped = true;
+		stopListener();
+	}
+	
+	public List<String> getPeers() {
+		return Collections.unmodifiableList(peers);
 	}
 	
 	private List<String> searchResources(String regex) {
@@ -177,6 +254,15 @@ public class PeerTest extends PowerPeer implements UserInterface {
 		}
 	}
 	
+	private void initCommands() {
+		commands = new Hashtable<String, Command>();
+		commands.put("ping", new PINGCommand());
+		commands.put("query", new QUERYCommand());
+		commands.put("hits", new QueryHitCommand());
+		commands.put("quit", new QUITCommand());
+		// TODO
+	}
+	
 	private void addResource(String resourceName) {
 		
 		if(resources.contains(resourceName))
@@ -197,31 +283,5 @@ public class PeerTest extends PowerPeer implements UserInterface {
 			log(t.getMessage());
 			error("Can't read resource file!");
 		}
-	}
-
-	public static void main(String[] args) throws AddressException,
-			MessagingException, IOException, InterruptedException {
-
-		PeerTest p = new PeerTest("localhost", "default@cn.com", "default",
-				"pwd", 4);
-
-		//p.sendPING("default@cn.com");
-		//p.sendPONG("default@cn.com");
-		//p.sendQUERYHIT("default@cn.com", "ha ha", new ArrayList<String>());
-		//p.sendFPING("default@cn.com", "default@cn.com", 2);
-		//p.sendFQUERY("default@cn.com", "default@cn.com", "ha", 2);
-		//p.sendGET("default@cn.com", "resource");
-		p.sendQUERY("default@cn.com", "d");
-		//p.sendPOST("default@cn.com", new File("jumbo/resources.xml"));
-
-		Thread.sleep(1000);
-
-		p.startListener(2);
-
-		Thread.sleep(10000);
-
-		p.stopListener();
-
-	}
-
+	}	
 }
