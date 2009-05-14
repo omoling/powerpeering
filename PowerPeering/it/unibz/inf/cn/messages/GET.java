@@ -2,7 +2,7 @@ package it.unibz.inf.cn.messages;
 
 public class GET extends PPMessage {
 
-	public String resource;
+	private String resource;
 	
 	public GET(String from, String to) {
 		super(from, to);

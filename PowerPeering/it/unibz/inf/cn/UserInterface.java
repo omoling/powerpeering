@@ -7,5 +7,7 @@ public interface UserInterface {
 	public void error(String s);
 	
 	public void display(String s);
+	
+	public void start();
 
 }
