@@ -10,4 +10,9 @@ public class QUITCommand implements Command {
 		peerImpl.stop();
 	}
 
+	@Override
+	public String info() {
+		return "Quit the app safely";
+	}
+
 }

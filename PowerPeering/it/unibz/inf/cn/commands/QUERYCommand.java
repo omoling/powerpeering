@@ -17,4 +17,9 @@ public class QUERYCommand implements Command {
 			}
 		}
 	}
+
+	@Override
+	public String info() {
+		return "Make a query by expression";
+	}
 }
