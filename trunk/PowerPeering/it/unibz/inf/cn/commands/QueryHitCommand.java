@@ -49,4 +49,9 @@ public class QueryHitCommand implements Command {
 		
 	}
 
+	@Override
+	public String info() {
+		return "Show the queryhits of the last query";
+	}
+
 }

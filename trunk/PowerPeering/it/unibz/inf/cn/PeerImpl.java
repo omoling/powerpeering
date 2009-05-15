@@ -1,6 +1,7 @@
 package it.unibz.inf.cn;
 
 import it.unibz.inf.cn.commands.*;
+import it.unibz.inf.cn.io.POP3;
 import it.unibz.inf.cn.messages.*;
 import it.unibz.inf.cn.util.QueryHit;
 
@@ -8,7 +9,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Random;
@@ -25,6 +25,8 @@ import org.dom4j.io.XMLWriter;
 
 public class PeerImpl extends PowerPeer implements UserInterface {
 
+	public static final String DEFAULT_PEER = "default@cn.com"; 
+	
 	private List<String> peers;
 	private int maxPeers;
 	private List<String> resources;
@@ -42,15 +44,41 @@ public class PeerImpl extends PowerPeer implements UserInterface {
 			int ttl, int checkTime, int maxPeers) {
 		super(serverHost, email, user, pwd, ttl);
 		peers = new ArrayList<String>();
-		peers.add("default@cn.com");
+		if(!email.equalsIgnoreCase(DEFAULT_PEER))
+			peers.add(DEFAULT_PEER);
 		this.maxPeers = maxPeers;
 		this.checkTime = checkTime;
 		loadResources();
 		initCommands();
 		isStopped = false;
+		
+		try { // TODO cleanup safely
+			POP3.truncateMBox(serverHost, user, pwd);
+		} catch (MessagingException e) {
+			e.printStackTrace();
+		}
+		
+	}
+	
+	public void mayAddUser(String peer) {
+		if (peers.contains(peer))
+			return;
+		if (peers.size() < maxPeers)
+			peers.add(peer);
+		else {
+			// peer gets 1/maxPeers chance to be added
+			Random r = new Random();
+			if (r.nextInt(maxPeers+1) == 0) {
+				peers.remove(r.nextInt(maxPeers));
+				peers.add(peer);
+			}
+		}
 	}
 
 	protected void handleMessage(PING message) {
+		
+		log("Received " + message);
+		
 		try {
 			sendPONG(message.getFrom());
 			if (message.getTTL() < 1)
@@ -59,6 +87,7 @@ public class PeerImpl extends PowerPeer implements UserInterface {
 				if (!peer.equalsIgnoreCase(message.getFrom()))
 					sendFPING(peer, message.getFrom(), message.getTTL() - 1);
 			}
+			mayAddUser(message.getFrom());
 		} catch (Throwable t) {
 			log(t.getMessage());
 			error("PING message could not be handled!");
@@ -66,15 +95,20 @@ public class PeerImpl extends PowerPeer implements UserInterface {
 	}
 
 	protected void handleMessage(FPING message) {
-		try {
+		
+		log("Received " + message);
+		
+		try {			
 			sendPONG(message.getRequestor());
 			if (message.getTTL() < 1)
 				return;
 			for (String peer : peers) {
 				if (!peer.equalsIgnoreCase(message.getFrom())
 						&& !peer.equalsIgnoreCase(message.getRequestor()))
-					sendFPING(peer, message.getFrom(), message.getTTL() - 1);
+					sendFPING(peer, message.getRequestor(), message.getTTL() - 1);
 			}
+			mayAddUser(message.getFrom());
+			mayAddUser(message.getRequestor());
 		} catch (Throwable t) {
 			log(t.getMessage());
 			error("FPING message could not be handled!");
@@ -82,21 +116,16 @@ public class PeerImpl extends PowerPeer implements UserInterface {
 	}
 
 	protected void handleMessage(PONG message) {
-		if (peers.contains(message.getFrom()))
-			return;
-		if (peers.size() < maxPeers)
-			peers.add(message.getFrom());
-		else {
-			// peer gets 1/maxPeers chance to be added
-			Random r = new Random();
-			if (r.nextInt(maxPeers+1) == 0) {
-				peers.remove(r.nextInt(maxPeers));
-				peers.add(message.getFrom());
-			}
-		}
+		
+		log("Received " + message);
+		
+		mayAddUser(message.getFrom());
 	}
 
 	protected void handleMessage(QUERY message) {
+		
+		log("Received " + message);
+		
 		try {
 			List<String> resources = searchResources(message.getExpression());
 			if (resources.size() > 0)
@@ -121,7 +150,7 @@ public class PeerImpl extends PowerPeer implements UserInterface {
 	}
 	
 	public List<QueryHit> getQueryHits() {
-		return Collections.unmodifiableList(queryHits);
+		return queryHits;
 	}
 	
 	public String getRecentQueryExpression() {
@@ -129,6 +158,9 @@ public class PeerImpl extends PowerPeer implements UserInterface {
 	}
 
 	protected void handleMessage(FQUERY message) {
+		
+		log("Received " + message);
+		
 		try {
 			List<String> resources = searchResources(message.getExpression());
 			if (resources.size() > 0)
@@ -138,7 +170,7 @@ public class PeerImpl extends PowerPeer implements UserInterface {
 			for (String peer : peers) {
 				if (!peer.equalsIgnoreCase(message.getFrom())
 						&& !peer.equalsIgnoreCase(message.getRequestor()))
-					sendFQUERY(peer, message.getFrom(),
+					sendFQUERY(peer, message.getRequestor(),
 							message.getExpression(), message.getTTL() - 1);
 			}
 		} catch (Throwable t) {
@@ -148,6 +180,9 @@ public class PeerImpl extends PowerPeer implements UserInterface {
 	}
 
 	protected void handleMessage(QUERYHIT message) {
+		
+		log("Received " + message);
+		
 		for(QueryHit hit : queryHits) {
 			if(hit.getPeer().equals(message.getFrom()))
 				return;
@@ -162,6 +197,8 @@ public class PeerImpl extends PowerPeer implements UserInterface {
 
 	protected void handleMessage(GET message) {
 		
+		log("Received " + message);
+		
 		File request = new File(RESOURCE_PATH + message.getResource());
 		if(request.exists()) {
 			try {
@@ -174,6 +211,9 @@ public class PeerImpl extends PowerPeer implements UserInterface {
 	}
 
 	protected void handleMessage(POST message) {
+		
+		log("Received " + message);
+		
 		addResource(message.getAttachment().getName());
 		display("Recieved Resource: " + message.getAttachment().getName());
 	}
@@ -201,6 +241,7 @@ public class PeerImpl extends PowerPeer implements UserInterface {
 	public void start() {
 		startListener(checkTime);
 		display("Welcome to PowerPeering...");
+		display("Type help for help");
 		
 		String input;
 		Scanner scanner = new Scanner(System.in);
@@ -225,7 +266,15 @@ public class PeerImpl extends PowerPeer implements UserInterface {
 	}
 	
 	public List<String> getPeers() {
-		return Collections.unmodifiableList(peers);
+		return peers;
+	}
+	
+	public List<String> getResources() {
+		return resources;
+	}
+	
+	public Hashtable<String, Command> getCommands() {
+		return commands;
 	}
 	
 	private List<String> searchResources(String regex) {
@@ -260,7 +309,9 @@ public class PeerImpl extends PowerPeer implements UserInterface {
 		commands.put("query", new QUERYCommand());
 		commands.put("hits", new QueryHitCommand());
 		commands.put("quit", new QUITCommand());
-		// TODO
+		commands.put("peers", new PEERCommand());
+		commands.put("resources", new RESOURCECommand());
+		commands.put("help", new HELPCommand());
 	}
 	
 	private void addResource(String resourceName) {
