@@ -1,5 +1,7 @@
 package it.unibz.inf.cn;
 
+import javax.mail.MessagingException;
+
 public class Main {
 	
 	public static void main(String[] args) {
@@ -17,7 +19,13 @@ public class Main {
 		int checkTime = 3;
 		int maxPeers = 10;
 		
-		PeerImpl peer = new PeerImpl(serverHost, email, user, pwd, ttl, checkTime, maxPeers);
+		PeerImpl peer = null;
+		try {
+			peer = new PeerImpl(serverHost, email, user, pwd, ttl, checkTime, maxPeers);
+		} catch (MessagingException e) {
+			System.out.println("Connection to server not possible");
+			return;
+		}
 		
 		peer.start();
 		
