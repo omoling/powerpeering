@@ -41,7 +41,7 @@ public class PeerImpl extends PowerPeer implements UserInterface {
 	private boolean isStopped;
 
 	public PeerImpl(String serverHost, String email, String user, String pwd,
-			int ttl, int checkTime, int maxPeers) {
+			int ttl, int checkTime, int maxPeers) throws MessagingException {
 		super(serverHost, email, user, pwd, ttl);
 		peers = new ArrayList<String>();
 		if(!email.equalsIgnoreCase(DEFAULT_PEER))
@@ -50,13 +50,11 @@ public class PeerImpl extends PowerPeer implements UserInterface {
 		this.checkTime = checkTime;
 		loadResources();
 		initCommands();
-		isStopped = false;
 		
-		try { // TODO cleanup safely
-			POP3.truncateMBox(serverHost, user, pwd);
-		} catch (MessagingException e) {
-			e.printStackTrace();
-		}
+		POP3.truncateMBox(serverHost, user, pwd);
+		
+		isStopped = false;
+
 		
 	}
 	
