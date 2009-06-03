@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.text.ParseException;
 import java.util.List;
 
 import it.unibz.inf.cn.messages.*;
@@ -150,7 +151,7 @@ public class PPMessages {
 				MimeBodyPart attachmentPart = (MimeBodyPart) multipart.getBodyPart(0);
 				String filename = attachmentPart.getFileName();
 				InputStream istream = attachmentPart.getDataHandler().getDataSource().getInputStream();
-				File tmp = new File("jumbo/resources/" + filename); // TODO better path handling
+				File tmp = new File("jumbo/resources/" + filename);
 				OutputStream fout = new FileOutputStream(tmp);
 				
 				byte[] buff = new byte[10];
@@ -229,7 +230,7 @@ public class PPMessages {
 			
 			
 		} catch (Throwable t) {
-			System.err.println(t); // TODO change !!!
+			return null;
 		}
 		return null; // error in parsing 
 	}
