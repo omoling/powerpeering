@@ -40,9 +40,12 @@ public class PeerImpl extends PowerPeer implements UserInterface {
 	private String queryExpression;
 	private boolean isStopped;
 
+	private boolean hasLog;
+
 	public PeerImpl(String serverHost, String email, String user, String pwd,
-			int ttl, int checkTime, int maxPeers) throws MessagingException {
+			int ttl, int checkTime, int maxPeers, boolean activeLog) throws MessagingException {
 		super(serverHost, email, user, pwd, ttl);
+		hasLog = activeLog;
 		peers = new ArrayList<String>();
 		if(!email.equalsIgnoreCase(DEFAULT_PEER))
 			peers.add(DEFAULT_PEER);
@@ -223,7 +226,8 @@ public class PeerImpl extends PowerPeer implements UserInterface {
 
 	@Override
 	public void log(String s) {
-		System.out.println("LOG: " + s);
+		if(hasLog)
+			System.out.println("LOG: " + s);
 	}
 
 	@Override
