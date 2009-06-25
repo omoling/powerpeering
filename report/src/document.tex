@@ -37,8 +37,6 @@ oriented protocols, its usage has a main advantage. The required ports of this
 protocols are already open for mail messaging use and mails are even protected
 by the privacy law.
 
-The rest of this report is organized as follows \ldots 
-% TODO report organization 
 
 
 \section{Application Overview}
@@ -57,7 +55,7 @@ For a better understanding of the systems internal functionality, sequence
 diagrams for the most important requirements have been developed.
 Figure~\ref{subfig:pingsequence} shows the systems sequence by invoking a
 network discovery, which is realized by the internal PING message send to
-adjacent clients. These clients forward the the message of the requesting
+adjacent clients. These clients forward the message of the requesting
 client and return a PONG message to it. Figure~\ref{subfig:querysequence} shows
 instead the sequence of actions performed by the system when a QUERY of a user
 is performed. The QUERY is as the PING send to adjacent/intermediate clients,
@@ -101,7 +99,7 @@ components of the application.
 \caption{Message Class Diagram.}
 \label{fig:messageclassdia}
 \end{figure}
-Figure~\ref{fig:appclassdia} shows the class diagram of the message package,
+Figure~\ref{fig:messageclassdia} shows the class diagram of the message package,
 these classes are used as data structures for the messages the system ins
 capable of sending and/or receiving.
 
